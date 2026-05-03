@@ -5,7 +5,7 @@ import { JobStatusResponse } from "../../../../shared-types";
 export const statusRouter = Router();
 
 statusRouter.get("/:jobId/status", (req: Request, res: Response) => {
-  const { jobId } = req.params;
+  const jobId = req.params["jobId"] as string;
   const job = jobStore.get(jobId);
 
   if (!job) {

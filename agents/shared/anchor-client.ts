@@ -58,7 +58,7 @@ export class NexusAnchorClient {
 
   async fetchJob(jobPda: PublicKey): Promise<JobAccount | null> {
     try {
-      const raw = await this.program.account["job"].fetch(jobPda);
+      const raw = await (this.program.account as any)["job"].fetch(jobPda);
       return raw as unknown as JobAccount;
     } catch {
       return null;
@@ -67,7 +67,7 @@ export class NexusAnchorClient {
 
   async fetchAnalystProfile(profilePda: PublicKey): Promise<AnalystProfileAccount | null> {
     try {
-      const raw = await this.program.account["analystProfile"].fetch(profilePda);
+      const raw = await (this.program.account as any)["analystProfile"].fetch(profilePda);
       return raw as unknown as AnalystProfileAccount;
     } catch {
       return null;

@@ -1,12 +1,12 @@
 import express, { Request, Response, NextFunction } from "express";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
-import { createLogger } from "../shared/logger";
-import { runHardwareCheck } from "../hardware_check";
+import { createLogger } from "../../shared/logger";
+import { runHardwareCheck } from "../../hardware_check";
 import { analyzeRouter } from "./routes/analyze";
 import { statusRouter } from "./routes/status";
 import { healthRouter } from "./routes/health";
-import { InferenceBackend } from "../hardware_check";
+import { InferenceBackend } from "../../hardware_check";
 
 const log = createLogger("analyst-agent");
 
@@ -30,7 +30,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  hardware.warnings.forEach((w) => log.warn(w));
+  hardware.warnings.forEach((w: string) => log.warn(w));
 
   // ── Wallet setup ─────────────────────────────────────────────────────────
   const privateKeyEnv = process.env["ANALYST_AGENT_WALLET_PRIVATE_KEY"];

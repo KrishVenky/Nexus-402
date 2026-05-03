@@ -9,7 +9,7 @@
  * numerical sentiment scores and explains them in terms a trader would act on.
  */
 
-import { createLogger } from "../../shared/logger";
+import { createLogger } from "../../../shared/logger";
 import { SentimentResult } from "../../../../shared-types";
 
 const log = createLogger("ollama");
