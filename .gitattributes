@@ -1,0 +1,25 @@
+# Normalize all text files to LF in the repo
+* text=auto eol=lf
+
+# Rust / TOML
+*.rs text eol=lf
+*.toml text eol=lf
+
+# TypeScript / JS / JSON
+*.ts text eol=lf
+*.js text eol=lf
+*.json text eol=lf
+
+# Markdown
+*.md text eol=lf
+
+# Shell scripts
+*.sh text eol=lf
+
+# Binary — don't touch
+*.so binary
+*.bin binary
+*.onnx binary
+*.hef binary
+*.png binary
+*.jpg binary

@@ -1,0 +1,54 @@
+{
+  "name": "nexus-402",
+  "version": "0.1.0",
+  "description": "Decentralized agent-to-agent labor market on Solana — Frontier Hackathon 2026",
+  "private": true,
+  "scripts": {
+    "dev:quant": "ts-node agents/quant-agent/src/index.ts",
+    "dev:analyst": "ts-node agents/analyst-agent/src/index.ts",
+    "hardware-check": "ts-node agents/hardware_check.ts",
+    "build:types": "tsc -p shared-types/tsconfig.json",
+    "check:types": "tsc -p shared-types/tsconfig.json --noEmit",
+    "demo": "concurrently \"npm run dev:quant\" \"npm run dev:analyst\" \"npm run dev:frontend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "test:integration": "ts-node scripts/test-integration.ts",
+    "anchor:build": "cd anchor && anchor build",
+    "anchor:test": "cd anchor && anchor test",
+    "anchor:deploy:devnet": "cd anchor && anchor deploy --provider.cluster devnet",
+    "lint": "eslint . --ext .ts --max-warnings 0",
+    "format": "prettier --write \"**/*.{ts,json,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "prettier": "^3.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
+    "@solana/web3.js": "^1.95.3",
+    "@metaplex-foundation/umi": "^0.9.2",
+    "@metaplex-foundation/mpl-core": "^1.4.1",
+    "neverthrow": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR_USERNAME/nexus-402.git"
+  },
+  "keywords": [
+    "solana",
+    "anchor",
+    "ai-agents",
+    "x402",
+    "defi",
+    "hackathon"
+  ]
+}

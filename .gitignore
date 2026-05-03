@@ -1,0 +1,86 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Builds
+dist/
+build/
+out/
+.next/
+target/
+**/*.js.map
+
+# Anchor / Solana
+anchor/.anchor/
+anchor/target/
+*.so
+*.keypair
+
+# Environment & Secrets — NEVER COMMIT
+.env
+.env.local
+.env.*.local
+.env.production
+*.pem
+*.key
+*_keypair.json
+id.json
+
+# Wallets / Keys (extra safety net)
+**/*_wallet.json
+**/*_key.json
+**/wallet.json
+
+# Hardware report output
+hardware_report.json
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# Next.js
+.next/
+.vercel/
+
+# Yarn / pnpm
+.yarn/cache
+.yarn/unplugged
+.pnpm-store/
+
+# FinBERT model weights (large binary — store in Git LFS or download separately)
+agents/analyst-agent/models/*.bin
+agents/analyst-agent/models/*.onnx
+agents/analyst-agent/models/*.hef
+agents/analyst-agent/models/*.gguf
+
+# Hailo compiled models
+*.hef
+
+# Python (hardware scripts / hailo bridge)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
