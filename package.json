@@ -19,21 +19,29 @@
     "format": "prettier --write \"**/*.{ts,json,md}\""
   },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "concurrently": "^8.2.2",
-    "eslint": "^8.57.0",
+    "@types/bs58": "^4.0.4",
+    "@types/express": "^5.0.6",
+    "@types/node": "^20.19.39",
+    "@types/node-fetch": "^2.6.13",
+    "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
     "prettier": "^3.2.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.32.1",
-    "@solana/web3.js": "^1.95.3",
-    "@metaplex-foundation/umi": "^0.9.2",
     "@metaplex-foundation/mpl-core": "^1.4.1",
-    "neverthrow": "^8.0.0"
+    "@metaplex-foundation/umi": "^0.9.2",
+    "@solana/web3.js": "^1.98.4",
+    "bs58": "^6.0.0",
+    "express": "^5.2.1",
+    "neverthrow": "^8.2.0",
+    "node-fetch": "^3.3.2",
+    "uuid": "^14.0.0"
   },
   "engines": {
     "node": ">=20.0.0",

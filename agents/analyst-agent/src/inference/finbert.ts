@@ -11,9 +11,9 @@
  * outputs are deterministic but appear "realistic" to the Quant Agent.
  */
 
-import { createLogger } from "../../shared/logger";
+import { createLogger } from "../../../shared/logger";
 import { SentimentResult, SentimentScore } from "../../../../shared-types";
-import { sha256Hex } from "../../shared/crypto";
+import { sha256Hex } from "../../../shared/crypto";
 
 const log = createLogger("finbert");
 

@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction } from "express";
 import { Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
-import { createLogger } from "../shared/logger";
+import { createLogger } from "../../shared/logger";
 import { strategyRouter } from "./routes/strategy";
 import { callbackRouter } from "./routes/callbacks";
 

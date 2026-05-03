@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { createLogger } from "../../shared/logger";
+import { createLogger } from "../../../shared/logger";
 import { executeX402Job } from "../x402/client";
 import { generateTradingSignal } from "../llm/ollama-client";
 import { receivedCallbacks } from "./callbacks";

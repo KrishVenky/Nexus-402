@@ -11,10 +11,10 @@
  */
 
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { createLogger } from "../../shared/logger";
-import { X402_TIMEOUT_CONFIG, getBackoffDelay, sleep } from "../../shared/timeout-config";
-import { NexusAnchorClient } from "../../shared/anchor-client";
-import { generateJobId, hexToBytes32, sha256Hex, constantTimeEqual } from "../../shared/crypto";
+import { createLogger } from "../../../shared/logger";
+import { X402_TIMEOUT_CONFIG, getBackoffDelay, sleep } from "../../../shared/timeout-config";
+import { NexusAnchorClient } from "../../../shared/anchor-client";
+import { generateJobId, hexToBytes32, sha256Hex, constantTimeEqual } from "../../../shared/crypto";
 import {
   X402PaymentRequest,
   X402Response402,
@@ -33,8 +33,6 @@ const fetchWithTimeout = async (
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    // @ts-ignore — node-fetch or native fetch
-    const { default: fetch } = await import("node-fetch");
     return await fetch(url, { ...opts, signal: controller.signal });
   } finally {
     clearTimeout(timer);
