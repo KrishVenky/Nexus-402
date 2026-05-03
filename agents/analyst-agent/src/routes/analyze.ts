@@ -13,7 +13,7 @@ import {
   X402Invoice,
   X402Callback,
   SentimentResult,
-} from "../../../shared-types";
+} from "../../../../shared-types";
 
 const log = createLogger("analyst-x402");
 
