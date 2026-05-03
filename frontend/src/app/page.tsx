@@ -7,7 +7,7 @@ import styles from "./page.module.css";
 
 type SentimentScore = { label: "positive"|"negative"|"neutral"; score: number; confidence: number };
 type SentimentResult = { scores: Record<string, SentimentScore>; aggregateSentiment: string; signalStrength: string; sourceCount: number; inferenceMs?: number };
-type JobStatus = "pending"|"processing"|"completed"|"cancelled"|"error";
+type JobStatus = "pending"|"processing"|"completed"|"disbursed"|"cancelled"|"error";
 type Job = { jobId: string; status: JobStatus; createdAt: string; amountLamports: number; result?: SentimentResult; disburseTxSig?: string };
 type AgentHealth = { ok: boolean; npuAvailable: boolean; cpuTempC: number|null; inferenceBackend: string; memoryFreeMb: number };
 type TradingSignal = { action: "buy"|"sell"|"hold"; confidence: string; reasoning: string; riskLevel: string } | null;
