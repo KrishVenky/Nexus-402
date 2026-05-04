@@ -4,9 +4,9 @@
   "description": "Decentralized agent-to-agent labor market on Solana — Frontier Hackathon 2026",
   "private": true,
   "scripts": {
-    "dev:quant": "ts-node agents/quant-agent/src/index.ts",
-    "dev:analyst": "ts-node agents/analyst-agent/src/index.ts",
-    "hardware-check": "ts-node agents/hardware_check.ts",
+    "dev:quant": "ts-node -r dotenv/config agents/quant-agent/src/index.ts",
+    "dev:analyst": "ts-node -r dotenv/config agents/analyst-agent/src/index.ts",
+    "hardware-check": "ts-node -r dotenv/config agents/hardware_check.ts",
     "build:types": "tsc -p shared-types/tsconfig.json",
     "check:types": "tsc -p shared-types/tsconfig.json --noEmit",
     "demo": "concurrently \"npm run dev:quant\" \"npm run dev:analyst\" \"npm run dev:frontend\"",
@@ -37,10 +37,13 @@
     "@metaplex-foundation/mpl-core": "^1.4.1",
     "@metaplex-foundation/umi": "^0.9.2",
     "@solana/web3.js": "^1.98.4",
+    "@types/dotenv": "^6.1.1",
     "bs58": "^6.0.0",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "neverthrow": "^8.2.0",
     "node-fetch": "^3.3.2",
+    "onnxruntime-node": "^1.25.1",
     "uuid": "^14.0.0"
   },
   "engines": {

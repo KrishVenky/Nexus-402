@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import { createLogger } from "../../../shared/logger";
 import { executeX402Job } from "../x402/client";
-import { generateTradingSignal } from "../llm/ollama-client";
+import { generateTradingSignal } from "../llm/llm-client";
 import { receivedCallbacks } from "./callbacks";
 import { X402PaymentRequest } from "../../../../shared-types";
 
