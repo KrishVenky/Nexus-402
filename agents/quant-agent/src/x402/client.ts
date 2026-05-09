@@ -201,17 +201,22 @@ export const executeX402Job = async (
 
   // At this point, the callback should have been received (set by analyst's deliverCallback)
   // If not yet received, this is a race condition — handled in callbacks route
+  // If not yet received, this is a race condition — handled in callbacks route
   if (!callbackResult) {
     log.warn("Callback not yet received via webhook — waiting 2s", { jobId });
     await sleep(2_000);
   }
 
+  // Read the actual populated callback
+  const { receivedCallbacks } = await import("../routes/callbacks");
+  const actualCallback = receivedCallbacks.get(jobId);
+
   return {
     success: true,
     jobId,
-    proofHash: "pending", // Will be set by callback handler
-    disburseTxSig: "pending",
-    callback: {} as X402Callback, // Will be filled in by callbacks route
+    proofHash: actualCallback?.proofHash ?? "pending",
+    disburseTxSig: "see_callback_logs", // Callback route handles disbursement async
+    callback: actualCallback ?? ({} as X402Callback),
   };
 };
 

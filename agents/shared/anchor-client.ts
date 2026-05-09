@@ -14,8 +14,19 @@ import {
 
 const log = createLogger("anchor-client");
 
+// WHY: Anchor program is not yet deployed on devnet (build blocker).
+// Setting MOCK_ANCHOR=true returns deterministic fake signatures so the
+// full x402 agent flow can be demonstrated without a live program.
+const MOCK_ANCHOR = process.env["MOCK_ANCHOR"] === "true";
+const mockSig = (label: string): string =>
+  `mock_${label}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+const MOCK_PROGRAM_ID = new PublicKey(
+  process.env["PROGRAM_ID"] ?? "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+);
+
 export class NexusAnchorClient {
-  private program: Program;
+  private program: Program | null;
   private provider: AnchorProvider;
 
   constructor(wallet: Keypair, connection?: Connection) {
@@ -27,30 +38,34 @@ export class NexusAnchorClient {
     });
     anchor.setProvider(this.provider);
 
-    const programId = new PublicKey(
-      process.env["PROGRAM_ID"] ?? "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
-    );
+    if (MOCK_ANCHOR) {
+      // WHY: Skip IDL + Program init entirely — program.programId would be
+      // undefined without a real deployed program, crashing PDA derivation.
+      this.program = null;
+      log.info("[MOCK] AnchorClient initialized", { programId: MOCK_PROGRAM_ID.toBase58() });
+      return;
+    }
 
-    // IDL is loaded from the built anchor target (post `anchor build`)
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const idl = require("../../anchor/target/idl/nexus_escrow.json") as anchor.Idl;
     this.program = new Program(idl, this.provider);
-    log.info("AnchorClient initialized", { programId: programId.toBase58() });
+    log.info("AnchorClient initialized", { programId: this.program!.programId.toBase58() });
   }
 
   // ─── PDA Derivation ───────────────────────────────────────────────────────
 
   deriveJobPda(initiator: PublicKey, jobId: Uint8Array): [PublicKey, number] {
+    const programId = this.program?.programId ?? MOCK_PROGRAM_ID;
     return PublicKey.findProgramAddressSync(
       [Buffer.from("job"), initiator.toBuffer(), Buffer.from(jobId)],
-      this.program.programId
+      programId
     );
   }
 
   deriveAnalystProfilePda(owner: PublicKey): [PublicKey, number] {
     return PublicKey.findProgramAddressSync(
       [Buffer.from("analyst"), owner.toBuffer()],
-      this.program.programId
+      this.program!.programId
     );
   }
 
@@ -58,7 +73,7 @@ export class NexusAnchorClient {
 
   async fetchJob(jobPda: PublicKey): Promise<JobAccount | null> {
     try {
-      const raw = await (this.program.account as any)["job"].fetch(jobPda);
+      const raw = await (this.program!.account as any)["job"].fetch(jobPda);
       return raw as unknown as JobAccount;
     } catch {
       return null;
@@ -67,7 +82,7 @@ export class NexusAnchorClient {
 
   async fetchAnalystProfile(profilePda: PublicKey): Promise<AnalystProfileAccount | null> {
     try {
-      const raw = await (this.program.account as any)["analystProfile"].fetch(profilePda);
+      const raw = await (this.program!.account as any)["analystProfile"].fetch(profilePda);
       return raw as unknown as AnalystProfileAccount;
     } catch {
       return null;
@@ -77,11 +92,16 @@ export class NexusAnchorClient {
   // ─── Instructions ─────────────────────────────────────────────────────────
 
   async initializeJob(args: InitializeJobArgs, workerPubkey: PublicKey): Promise<string> {
+    if (MOCK_ANCHOR) {
+      const sig = mockSig("initialize_job");
+      log.info("[MOCK] initializeJob", { sig });
+      return sig;
+    }
     const initiator = (this.provider.wallet as Wallet).payer;
     const [jobPda] = this.deriveJobPda(initiator.publicKey, new Uint8Array(args.jobId));
     const [analystProfilePda] = this.deriveAnalystProfilePda(workerPubkey);
 
-    const sig = await this.program.methods
+    const sig = await this.program!.methods
       .initializeJob(args.jobId, args.amountLamports, args.expirySeconds ?? null)
       .accounts({
         initiator: initiator.publicKey,
@@ -98,10 +118,15 @@ export class NexusAnchorClient {
   }
 
   async postProof(args: PostProofArgs, initiatorPubkey: PublicKey): Promise<string> {
+    if (MOCK_ANCHOR) {
+      const sig = mockSig("post_proof");
+      log.info("[MOCK] postProof", { sig });
+      return sig;
+    }
     const worker = (this.provider.wallet as Wallet).payer;
     const [jobPda] = this.deriveJobPda(initiatorPubkey, new Uint8Array(args.jobId));
 
-    const sig = await this.program.methods
+    const sig = await this.program!.methods
       .postProof(args.jobId, args.proofHash)
       .accounts({ worker: worker.publicKey, job: jobPda })
       .signers([worker])
@@ -112,11 +137,16 @@ export class NexusAnchorClient {
   }
 
   async disburseFunds(args: DisburseArgs, workerPubkey: PublicKey): Promise<string> {
+    if (MOCK_ANCHOR) {
+      const sig = mockSig("disburse_funds");
+      log.info("[MOCK] disburseFunds", { sig });
+      return sig;
+    }
     const initiator = (this.provider.wallet as Wallet).payer;
     const [jobPda] = this.deriveJobPda(initiator.publicKey, new Uint8Array(args.jobId));
     const [analystProfilePda] = this.deriveAnalystProfilePda(workerPubkey);
 
-    const sig = await this.program.methods
+    const sig = await this.program!.methods
       .disburseFunds(args.jobId)
       .accounts({
         initiator: initiator.publicKey,
@@ -133,10 +163,15 @@ export class NexusAnchorClient {
   }
 
   async cancelJob(args: CancelJobArgs): Promise<string> {
+    if (MOCK_ANCHOR) {
+      const sig = mockSig("cancel_job");
+      log.warn("[MOCK] cancelJob", { sig });
+      return sig;
+    }
     const initiator = (this.provider.wallet as Wallet).payer;
     const [jobPda] = this.deriveJobPda(initiator.publicKey, new Uint8Array(args.jobId));
 
-    const sig = await this.program.methods
+    const sig = await this.program!.methods
       .cancelJob(args.jobId)
       .accounts({
         initiator: initiator.publicKey,

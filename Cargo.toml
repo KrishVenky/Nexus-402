@@ -1,0 +1,4 @@
+
+[patch.crates-io.toml_datetime]
+path = "./vendor/toml_datetime"
+

@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
-import { PublicKey } from "@solana/web3.js";
+import type { AgentContext } from "../index";
 import { createLogger } from "../../../shared/logger";
 import { createConnection } from "../../../shared/solana-client";
 import { sha256Hex } from "../../../shared/crypto";
@@ -36,6 +36,7 @@ export const analyzeRouter = Router();
 
 // ── POST /api/v1/analyze — Phase 2: Return 402 invoice ───────────────────────
 analyzeRouter.post("/analyze", async (req: Request, res: Response) => {
+  const agentCtx = (req as Request & { agentCtx: AgentContext }).agentCtx;
   const body = req.body as X402PaymentRequest;
   const jobId = req.headers["x-job-id"] as string | undefined;
   const agentId = req.headers["x-agent-id"] as string | undefined;
@@ -70,9 +71,7 @@ analyzeRouter.post("/analyze", async (req: Request, res: Response) => {
   const amountLamports = 500_000; // 0.0005 SOL per job
 
   const programId = process.env["PROGRAM_ID"] ?? "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS";
-  const walletPubkey = process.env["ANALYST_AGENT_WALLET_PRIVATE_KEY"]
-    ? "WALLET_NOT_SHOWN" // wallet loaded in index.ts
-    : "dev-mode-pubkey";
+  const walletPubkey = agentCtx.wallet.publicKey.toBase58();
 
   const invoice: X402Invoice = {
     invoiceId,
@@ -112,7 +111,7 @@ analyzeRouter.post("/analyze", async (req: Request, res: Response) => {
 
 // ── POST /api/v1/analyze/confirm — Phase 3: Verify escrow + start inference ──
 analyzeRouter.post("/analyze/confirm", async (req: Request, res: Response) => {
-  const { invoiceId, jobId, escrowTxSignature, escrowPda, confirmedAt } = req.body as {
+  const { invoiceId, jobId, escrowTxSignature } = req.body as {
     invoiceId: string;
     jobId: string;
     escrowTxSignature: string;
@@ -133,20 +132,24 @@ analyzeRouter.post("/analyze/confirm", async (req: Request, res: Response) => {
   }
 
   // Verify escrow transaction exists on-chain
-  try {
-    const conn = createConnection();
-    const txInfo = await conn.getTransaction(escrowTxSignature, {
-      commitment: "confirmed",
-      maxSupportedTransactionVersion: 0,
-    });
-    if (!txInfo || txInfo.meta?.err) {
-      res.status(402).json({ error: "Escrow transaction not confirmed on-chain" });
+  // WHY: Skip RPC lookup in mock mode — the tx signature is a fake string
+  // and would fail Solana's base58 validation immediately.
+  if (process.env["MOCK_ANCHOR"] !== "true") {
+    try {
+      const conn = createConnection();
+      const txInfo = await conn.getTransaction(escrowTxSignature, {
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0,
+      });
+      if (!txInfo || txInfo.meta?.err) {
+        res.status(402).json({ error: "Escrow transaction not confirmed on-chain" });
+        return;
+      }
+    } catch (err) {
+      log.error("RPC verification failed", { error: String(err) });
+      res.status(500).json({ error: "Failed to verify escrow on-chain" });
       return;
     }
-  } catch (err) {
-    log.error("RPC verification failed", { error: String(err) });
-    res.status(500).json({ error: "Failed to verify escrow on-chain" });
-    return;
   }
 
   usedInvoiceIds.add(invoiceId);

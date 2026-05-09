@@ -1,0 +1,292 @@
+/* ============================================================
+   Nexus-402 — Design Tokens & Global Styles
+   ============================================================ */
+
+:root {
+  --blue:   #60a5fa;
+  --green:  #4ade80;
+  --red:    #f87171;
+  --yellow: #fbbf24;
+  --purple: #a78bfa;
+
+  --blue-dim:   rgba(96,  165, 250, 0.12);
+  --green-dim:  rgba(74,  222, 128, 0.12);
+  --red-dim:    rgba(248, 113, 113, 0.12);
+  --yellow-dim: rgba(251, 191,  36, 0.12);
+  --purple-dim: rgba(167, 139, 250, 0.12);
+
+  --fg-0: #f1f5f9;
+  --fg-1: #cbd5e1;
+  --fg-2: #94a3b8;
+  --fg-3: #64748b;
+  --fg-4: #475569;
+
+  --bg-1: #07070d;
+  --bg-2: #0d0d1a;
+  --bg-3: #111120;
+
+  --border-1:    rgba(255, 255, 255, 0.07);
+  --border-2:    rgba(255, 255, 255, 0.12);
+  --border-blue: rgba(96,  165, 250, 0.25);
+
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Helvetica, sans-serif;
+}
+
+/* ============================================================
+   Reset
+   ============================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 14px; }
+
+body {
+  background: var(--bg-1);
+  color: var(--fg-1);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+/* Subtle grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(96,165,250,0.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(96,165,250,0.022) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Top-corner ambient glow */
+body::after {
+  content: '';
+  position: fixed;
+  top: -300px;
+  left: -300px;
+  width: 800px;
+  height: 800px;
+  background: radial-gradient(circle, rgba(96,165,250,0.07) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; }
+
+/* ============================================================
+   Typography
+   ============================================================ */
+.mono  { font-family: var(--font-mono); }
+.label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+  font-family: var(--font-mono);
+}
+.dim { color: var(--fg-4); }
+
+/* ============================================================
+   Panel / card
+   ============================================================ */
+.panel {
+  background: linear-gradient(180deg, rgba(13,13,26,0.88), rgba(8,8,18,0.92));
+  border: 1px solid var(--border-1);
+  border-radius: 10px;
+  position: relative;
+}
+
+/* Glowing panel variant used in dashboard hero */
+.glow-card {
+  background: linear-gradient(180deg, rgba(13,13,26,0.88), rgba(8,8,18,0.92));
+  border: 1px solid var(--border-blue);
+  border-radius: 12px;
+  box-shadow:
+    0 0 0 1px rgba(96,165,250,0.05),
+    0 0 80px -24px rgba(96,165,250,0.22),
+    inset 0 1px 0 rgba(96,165,250,0.04);
+  position: relative;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-1);
+  border-radius: 6px;
+  color: var(--fg-2);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1;
+}
+.btn:hover {
+  background: rgba(255,255,255,0.07);
+  border-color: var(--border-2);
+  color: var(--fg-0);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  background: linear-gradient(180deg, #3b82f6, #2563eb);
+  border: 1px solid rgba(96,165,250,0.55);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  box-shadow: 0 0 24px -8px rgba(59,130,246,0.55), inset 0 1px 0 rgba(255,255,255,0.18);
+  transition: background 120ms, box-shadow 120ms;
+  text-decoration: none;
+  line-height: 1;
+}
+.btn-primary:hover {
+  background: linear-gradient(180deg, #60a5fa, #3b82f6);
+  box-shadow: 0 0 36px -6px rgba(59,130,246,0.7), inset 0 1px 0 rgba(255,255,255,0.22);
+}
+.btn-primary:disabled { cursor: wait; opacity: 0.85; }
+
+/* ============================================================
+   Pulsing dot
+   ============================================================ */
+.pulse-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse-ring 1.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  flex-shrink: 0;
+}
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0   currentColor; }
+  50%  { box-shadow: 0 0 0 5px currentColor; opacity: 0.4; }
+  100% { box-shadow: 0 0 0 0   currentColor; opacity: 0; }
+}
+
+/* ============================================================
+   Keyboard key
+   ============================================================ */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  padding: 0 5px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border-2);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--fg-3);
+}
+
+/* ============================================================
+   Tab navigation
+   ============================================================ */
+.tab-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 14px;
+  height: 100%;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--fg-3);
+  border-bottom: 2px solid transparent;
+  transition: color 120ms, border-color 120ms;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.tab-link:hover { color: var(--fg-1); }
+.tab-link.active {
+  color: var(--fg-0);
+  border-bottom-color: var(--blue);
+}
+
+/* ============================================================
+   Table
+   ============================================================ */
+.row-hover:hover { background: rgba(255,255,255,0.022); }
+
+/* ============================================================
+   Sparkline path
+   ============================================================ */
+.spark {
+  fill: none;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ============================================================
+   Animated flow connector line (SVG)
+   ============================================================ */
+.flow-line-active {
+  stroke-dasharray: 4 4;
+  animation: dash-flow 0.55s linear infinite;
+}
+@keyframes dash-flow {
+  to { stroke-dashoffset: -8; }
+}
+
+/* ============================================================
+   Spinner
+   ============================================================ */
+.spin { animation: spin 0.85s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+::-webkit-scrollbar         { width: 5px; height: 5px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
+
+/* ============================================================
+   Responsive helpers
+   ============================================================ */
+.hide-md { display: flex; }   /* hidden on mobile */
+.hide-lg { display: none; }   /* shown on mobile only */
+
+@media (max-width: 880px) {
+  .hide-md { display: none   !important; }
+  .hide-lg { display: flex   !important; }
+}
+
+/* ============================================================
+   Loading screen (shown before React hydrates)
+   ============================================================ */
+#loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 16px;
+}
