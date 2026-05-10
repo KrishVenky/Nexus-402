@@ -356,6 +356,8 @@ function useNexusSim() {
           setSentiment(prev => {
             const next = { ...prev };
             for (const [sym, sc] of Object.entries(raw)) {
+              // Skip zero-confidence results — inference failed, keep last good data
+              if (!sc.confidence || !sc.score) continue;
               next[sym] = { label: sc.label, score: sc.score, confidence: sc.confidence, samples: (prev[sym]?.samples ?? 0) + 1 };
             }
             return next;
