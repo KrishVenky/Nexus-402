@@ -423,19 +423,19 @@ function useNexusSim() {
     const artifacts = { asset };
     setCycleState({ running: true, activePhase: 0, completedThrough: -1, progress: 0, artifacts });
 
-    // Phase timeline (ms after start)
+    // Phase timeline (ms after start) — inference held longer to reflect real HF API latency
     const TL = [
-      { at: 250,  phase: 0, complete: -1, progress: 6 },                                      // request
-      { at: 700,  phase: 1, complete: 0,  progress: 18 },                                     // 402 invoice
-      { at: 1300, phase: 2, complete: 1,  progress: 32, artifacts: { ...artifacts, escrowSig } }, // escrow lock + sig
-      { at: 1500, phase: 2, complete: 2,  progress: 40, statusUpdate: { status: "Escrow Locked" } },
-      { at: 2000, phase: 3, complete: 2,  progress: 55 },                                     // inference
-      { at: 3500, phase: 4, complete: 3,  progress: 75, artifacts: { ...artifacts, escrowSig, proofHash } }, // proof
-      { at: 3700, phase: 4, complete: 4,  progress: 82, statusUpdate: { status: "Proof Submitted", proofHash, proofSig, inferenceMs: 1500 + Math.round(Math.random()*200-100) } },
-      { at: 4500, phase: 5, complete: 4,  progress: 92 },                                     // disburse
-      { at: 5400, phase: 5, complete: 5,  progress: 100, artifacts: { ...artifacts, escrowSig, proofHash, disburseSig },
-        statusUpdate: { status: "Disbursed", disburseSig, completedAt: Date.now() + 5400 } },
-      { at: 6800, finish: true },
+      { at: 250,   phase: 0, complete: -1, progress: 5 },                                      // request
+      { at: 700,   phase: 1, complete: 0,  progress: 14 },                                     // 402 invoice
+      { at: 1300,  phase: 2, complete: 1,  progress: 26, artifacts: { ...artifacts, escrowSig } }, // escrow lock
+      { at: 1600,  phase: 2, complete: 2,  progress: 32, statusUpdate: { status: "Escrow Locked" } },
+      { at: 2100,  phase: 3, complete: 2,  progress: 44 },                                     // inference — holds ~9s
+      { at: 11000, phase: 4, complete: 3,  progress: 70, artifacts: { ...artifacts, escrowSig, proofHash } }, // proof
+      { at: 11400, phase: 4, complete: 4,  progress: 78, statusUpdate: { status: "Proof Submitted", proofHash, proofSig, inferenceMs: 14000 + Math.round(Math.random()*3000) } },
+      { at: 12500, phase: 5, complete: 4,  progress: 90 },                                     // disburse
+      { at: 13800, phase: 5, complete: 5,  progress: 100, artifacts: { ...artifacts, escrowSig, proofHash, disburseSig },
+        statusUpdate: { status: "Disbursed", disburseSig, completedAt: Date.now() + 13800 } },
+      { at: 15500, finish: true },
     ];
 
     const start = Date.now();
