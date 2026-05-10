@@ -178,11 +178,11 @@ function Meter({ label, value, pct, color }) {
         <span className="label">{label}</span>
         <span className="mono" style={{ fontSize: 11.5, color: "var(--fg-1)" }}>{value}</span>
       </div>
-      <div style={{ height: 7, background: "rgba(255,255,255,0.09)", borderRadius: 4, overflow: "hidden" }}>
+      <div style={{ height: 8, background: "rgba(255,255,255,0.11)", borderRadius: 4, overflow: "hidden" }}>
         <div style={{
-          height: "100%", width: `${Math.min(100, Math.max(2, pct))}%`,
-          background: `linear-gradient(90deg, ${color}99, ${color})`,
-          boxShadow: `0 0 10px -1px ${color}`,
+          height: "100%", width: `${Math.min(100, Math.max(3, pct))}%`,
+          background: color,
+          boxShadow: `0 0 10px 3px ${color}55`,
           borderRadius: 4,
           transition: "width 600ms ease",
         }}/>

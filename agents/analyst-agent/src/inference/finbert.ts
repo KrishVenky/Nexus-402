@@ -220,9 +220,12 @@ const runHfApiInference = async (req: InferenceRequest): Promise<InferenceOutput
     } else {
       const avg = { negative: totals.negative / counted, neutral: totals.neutral / counted, positive: totals.positive / counted };
       const best = (Object.entries(avg) as Array<[keyof typeof avg, number]>).reduce((a, b) => b[1] > a[1] ? b : a);
+      // Bipolar score: 0=fully bearish, 0.5=neutral, 1=fully bullish
+      // Using (positive - negative + 1) / 2 so it never collapses to 0 on a bearish market
+      const bipolar = Math.max(0.02, Math.min(0.98, (avg.positive - avg.negative + 1) / 2));
       scores[symbol] = {
         label: best[0] as "positive" | "negative" | "neutral",
-        score: avg.positive,
+        score: bipolar,
         confidence: best[1],
       };
     }
