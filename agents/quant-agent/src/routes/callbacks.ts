@@ -13,6 +13,18 @@ export const callbackRouter = Router();
 const receivedCallbacks = new Map<string, X402Callback>();
 export { receivedCallbacks };
 
+type SettlementRecord = {
+  jobId: string;
+  status: "settled" | "settlement_failed";
+  disburseTxSignature?: string;
+  paymentAmountLamports: number;
+  settledAt?: number;
+  error?: string;
+};
+
+const settlementStore = new Map<string, SettlementRecord>();
+export { settlementStore };
+
 // ── POST /api/v1/callbacks/job-complete ──────────────────────────────────────
 callbackRouter.post("/job-complete", async (req: Request, res: Response) => {
   const wallet = (req as Request & { wallet: Keypair }).wallet;
@@ -56,6 +68,13 @@ callbackRouter.post("/job-complete", async (req: Request, res: Response) => {
     const disburseSig = await client.disburseFunds({ jobId: jobIdBytes }, workerPubkey);
 
     log.info("Funds disbursed", { disburseSig, jobId });
+    settlementStore.set(jobId, {
+      jobId,
+      status: "settled",
+      disburseTxSignature: disburseSig,
+      paymentAmountLamports: 500_000,
+      settledAt: Date.now(),
+    });
 
     res.json({
       status: "settled",
@@ -66,6 +85,12 @@ callbackRouter.post("/job-complete", async (req: Request, res: Response) => {
     });
   } catch (err) {
     log.error("Disburse failed", { error: String(err), jobId });
+    settlementStore.set(jobId, {
+      jobId,
+      status: "settlement_failed",
+      paymentAmountLamports: 500_000,
+      error: String(err),
+    });
     res.status(500).json({ error: "Disburse failed — funds remain in escrow until expiry" });
   }
 });

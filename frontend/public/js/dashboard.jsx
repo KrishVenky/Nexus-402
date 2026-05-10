@@ -99,7 +99,7 @@ function TradingSignal({ signal }) {
           <div style={{ display: "flex", flexDirection: "column", gap: 6, paddingBottom: 6 }}>
             <Pill label="Confidence" value={`${(signal.confidence*100).toFixed(0)}%`} />
             <Pill label="Risk" value={signal.risk.toUpperCase()} />
-            <Pill label="Δ position" value={`${signal.positionDelta > 0 ? "+" : ""}${(signal.positionDelta*100).toFixed(0)}%`} valueColor={signal.positionDelta < 0 ? "var(--red)" : "var(--green)"}/>
+            <Pill label="Delta position" value={`${signal.positionDelta > 0 ? "+" : ""}${(signal.positionDelta*100).toFixed(0)}%`} valueColor={signal.positionDelta < 0 ? "var(--red)" : "var(--green)"}/>
           </div>
         </div>
       </div>
@@ -154,7 +154,7 @@ function AnalystHealth({ health }) {
         <KV k="p99 inference" v={<span className="mono" style={{ fontSize: 12, color: "var(--fg-0)" }}>{health.inference_p99_ms}ms</span>} />
       </div>
       <div style={{ padding: "0 18px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-        <Meter label="NPU temp" value={`${health.npu.temp_c.toFixed(1)}°C`} pct={(health.npu.temp_c / 90) * 100} color={tempHot ? "var(--red)" : "var(--green)"} />
+        <Meter label="NPU temp" value={`${health.npu.temp_c.toFixed(1)} C`} pct={(health.npu.temp_c / 90) * 100} color={tempHot ? "var(--red)" : "var(--green)"} />
         <Meter label="NPU util" value={`${utilPct.toFixed(0)}%`} pct={utilPct} color="var(--blue)"/>
         <Meter label="VRAM" value={`${(health.npu.mem_mb/1024).toFixed(1)} / ${(health.npu.mem_total_mb/1024).toFixed(0)} GB`} pct={memPct} color="var(--purple)"/>
       </div>
@@ -268,18 +268,22 @@ function Td({ children, align = "left" }) {
 // Sentiment panel
 // ============================================================
 function SentimentPanel({ sentiment }) {
+  const sampleCount = Object.values(sentiment).reduce((sum, item) => sum + (item.samples || 0), 0);
   return (
     <div className="panel" style={{ display: "flex", flexDirection: "column" }}>
       <SectionHead
         icon={<Icon.Spark s={14}/>}
         title="Asset Sentiment"
         sub="Latest cross-asset analysis"
-        right={<span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>n=3,830</span>}
+        right={<span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>{sampleCount ? `n=${sampleCount.toLocaleString()}` : "waiting"}</span>}
       />
       <div style={{ padding: "4px 18px 14px" }}>
-        {Object.entries(sentiment).map(([asset, data]) => (
-          <SentimentBar key={asset} asset={asset} data={data} />
-        ))}
+        {Object.entries(sentiment).length
+          ? Object.entries(sentiment).map(([asset, data]) => (
+              <SentimentBar key={asset} asset={asset} data={data} />
+            ))
+          : <div style={{ padding: "18px 0", color: "var(--fg-3)", fontSize: 12.5 }}>No live sentiment result yet.</div>
+        }
       </div>
     </div>
   );

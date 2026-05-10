@@ -88,6 +88,7 @@ export type JobStatus = "pending" | "processing" | "completed" | "cancelled" | "
 
 export type HealthResponse = {
   ok: boolean;
+  pubkey?: string;
   npuAvailable: boolean;
   cpuTempC: number | null;
   npuTempC: number | null;

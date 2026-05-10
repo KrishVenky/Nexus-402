@@ -190,7 +190,7 @@ function SolAmount({ lamports, size = "md", color, showLamports = true, sign }) 
   return (
     <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
       <span className="mono" style={{ fontSize, color: c, fontWeight: 600, letterSpacing: "-0.01em" }}>
-        {sign === "-" ? "−" : sign === "+" ? "+" : ""}{sol.toFixed(decimals)}
+        {sign === "-" ? "-" : sign === "+" ? "+" : ""}{sol.toFixed(decimals)}
       </span>
       <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)", letterSpacing: "0.04em" }}>SOL</span>
       {showLamports && size !== "lg" && (
