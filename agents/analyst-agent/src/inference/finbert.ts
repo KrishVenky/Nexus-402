@@ -36,6 +36,8 @@ export const runInference = async (req: InferenceRequest): Promise<SentimentResu
     output = { scores: await runHailoInference(req), sourceCount: 0 };
   } else if (backend === "onnx_cpu") {
     output = await runOnnxInference(req);
+  } else if (backend === "hf_api") {
+    output = await runHfApiInference(req);
   } else {
     output = { scores: runMockInference(req), sourceCount: 0 };
   }
@@ -170,6 +172,64 @@ const runHailoInference = async (req: InferenceRequest): Promise<Record<string, 
       resolve(runMockInference(req));
     });
   });
+};
+
+const runHfApiInference = async (req: InferenceRequest): Promise<InferenceOutput> => {
+  const token = process.env["HF_TOKEN"];
+  if (!token) {
+    log.warn("HF_TOKEN not set, falling back to mock");
+    return { scores: runMockInference(req), sourceCount: 0 };
+  }
+
+  const corpus = await fetchSentimentCorpus(req);
+  const sourceCount = Object.values(corpus).reduce((s, d) => s + d.length, 0);
+  const { default: fetch } = await import("node-fetch");
+  const HF_URL = "https://api-inference.huggingface.co/models/ProsusAI/finbert";
+  const scores: Record<string, SentimentScore> = {};
+
+  for (const symbol of req.symbols) {
+    const docs = corpus[symbol] ?? [];
+    const totals = { negative: 0, neutral: 0, positive: 0 };
+    let counted = 0;
+
+    for (const doc of docs) {
+      try {
+        const res = await fetch(HF_URL, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs: doc.text.slice(0, 512) }),
+          signal: AbortSignal.timeout(12_000),
+        });
+        if (!res.ok) continue;
+        const raw = await res.json() as Array<Array<{ label: string; score: number }>>;
+        const results = raw[0] ?? [];
+        for (const r of results) {
+          const lbl = r.label.toLowerCase() as keyof typeof totals;
+          if (lbl in totals) totals[lbl] += r.score;
+        }
+        counted++;
+      } catch {
+        // single doc failure is non-fatal
+      }
+    }
+
+    const divisor = Math.max(1, counted);
+    const avg = { negative: totals.negative / divisor, neutral: totals.neutral / divisor, positive: totals.positive / divisor };
+    const best = (Object.entries(avg) as Array<[keyof typeof avg, number]>).reduce((a, b) => b[1] > a[1] ? b : a);
+
+    scores[symbol] = {
+      label: best[0] as "positive" | "negative" | "neutral",
+      score: avg.positive,
+      confidence: best[1],
+    };
+  }
+
+  // fall back any symbols that got no docs
+  for (const symbol of req.symbols) {
+    if (!scores[symbol]) scores[symbol] = runMockInference(req)[symbol]!;
+  }
+
+  return { scores, sourceCount };
 };
 
 const computeSoftmax = (logits: number[]): number[] => {

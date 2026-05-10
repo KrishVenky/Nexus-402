@@ -5,7 +5,7 @@ const log = createLogger("sentiment-ingestion");
 export type SentimentSource = "twitter" | "reddit" | "news" | "all";
 
 export type SentimentDocument = {
-  source: "cryptopanic" | "newsapi" | "gnews" | "reddit";
+  source: "cryptopanic" | "newsapi" | "gnews" | "reddit" | "coinstats";
   symbol: string;
   title: string;
   text: string;
@@ -50,6 +50,7 @@ export const fetchSentimentCorpus = async (
     tasks.push(collectInto(corpus, fetchCryptoPanic(req)));
     tasks.push(collectInto(corpus, fetchNewsApi(req)));
     tasks.push(collectInto(corpus, fetchGNews(req)));
+    tasks.push(collectInto(corpus, fetchCoinStats(req)));
   }
 
   if (req.source === "reddit" || req.source === "all") {
@@ -280,6 +281,55 @@ async function fetchReddit(req: CorpusRequest): Promise<SentimentDocument[]> {
         }];
       }));
     }
+  }
+
+  return docs;
+}
+
+async function fetchCoinStats(req: CorpusRequest): Promise<SentimentDocument[]> {
+  const token = process.env["COINSTATS_API_KEY"];
+  if (!token) return [];
+
+  const docs: SentimentDocument[] = [];
+  for (const symbol of req.symbols) {
+    const url = new URL("https://openapiv1.coinstats.app/news");
+    url.searchParams.set("limit", String(Math.min(maxDocsPerSymbol(), 20)));
+
+    type CoinStatsArticle = {
+      title?: string;
+      description?: string;
+      source?: string;
+      link?: string;
+      imgUrl?: string;
+      feedDate?: number;
+      coins?: Array<{ symbol?: string }>;
+    };
+    const body = await fetchJson<{ news?: CoinStatsArticle[] }>(url.toString(), {
+      "X-API-KEY": token,
+    });
+
+    const afterMs = publishedAfter(req.lookbackHours).getTime();
+    const aliases = aliasesFor(symbol).map((a) => a.toLowerCase());
+
+    docs.push(...(body.news ?? []).flatMap((article) => {
+      if (article.feedDate && article.feedDate * 1000 < afterMs) return [];
+      const coinMatch = (article.coins ?? []).some(
+        (c) => aliases.includes((c.symbol ?? "").toLowerCase())
+      );
+      const textMatch = aliases.some((a) =>
+        (article.title ?? "").toLowerCase().includes(a) ||
+        (article.description ?? "").toLowerCase().includes(a)
+      );
+      if (!coinMatch && !textMatch) return [];
+      return [{
+        source: "coinstats" as const,
+        symbol,
+        title: article.title ?? "",
+        text: [article.title, article.description, article.source].filter(Boolean).join(". "),
+        url: article.link,
+        publishedAt: article.feedDate ? new Date(article.feedDate * 1000).toISOString() : undefined,
+      }];
+    }));
   }
 
   return docs;
