@@ -327,20 +327,19 @@ function SentimentBar({ asset, data }) {
           <span className="mono" style={{ fontSize: 10.5, color: "var(--fg-3)" }}>conf {(data.confidence*100).toFixed(0)}%</span>
         </div>
       </div>
-      {/* bipolar bar: -1 left, 0 center, +1 right; score 0..1 maps to -1..+1 */}
-      <div style={{ position: "relative", height: 6, background: "rgba(255,255,255,0.04)", borderRadius: 3, overflow: "visible" }}>
-        <div style={{ position: "absolute", left: "50%", top: -2, width: 1, height: 10, background: "var(--fg-4)" }} />
+      {/* bipolar bar: left=bearish(red), center=neutral, right=bullish(green) */}
+      <div style={{ position: "relative", height: 7, background: "rgba(255,255,255,0.10)", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ position: "absolute", left: "50%", top: 0, width: 1, height: "100%", background: "rgba(255,255,255,0.25)", zIndex: 1 }} />
         {(() => {
           const pct = (score - 0.5) * 100; // -50..+50
           const left = pct >= 0 ? 50 : 50 + pct;
-          const width = Math.abs(pct);
+          const width = Math.max(2, Math.abs(pct));
           return (
             <div style={{
               position: "absolute", top: 0, height: "100%",
               left: `${left}%`, width: `${width}%`,
-              background: `linear-gradient(90deg, ${labelColor}80, ${labelColor})`,
-              borderRadius: 3,
-              boxShadow: `0 0 12px -2px ${labelColor}`,
+              background: labelColor,
+              boxShadow: `0 0 8px 2px ${labelColor}55`,
             }} />
           );
         })()}
