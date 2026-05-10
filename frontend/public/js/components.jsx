@@ -285,14 +285,20 @@ function StatCard({ label, value, sub, accent, icon, sparkline, trend }) {
   );
 }
 
-// build a deterministic sparkline path
+// build a deterministic organic sparkline using seeded random-walk with mean reversion
 function buildSpark(seed, points = 24) {
-  const w = 120, h = 24;
-  const step = w / (points - 1);
+  const w = 120, h = 24, step = w / (points - 1);
+  // seed the LCG from a stable hash of the seed float
+  let rng = Math.abs(Math.sin(seed * 127.1 + 311.7) * 233280) | 0;
+  let v = 0.42 + (rng % 100) / 600; // start near middle
   let s = "";
   for (let i = 0; i < points; i++) {
-    const v = (Math.sin(seed + i * 0.7) * 0.4 + Math.sin(seed * 2 + i * 0.3) * 0.3 + 0.5);
-    const y = h - v * h * 0.85 - 1;
+    rng = (rng * 9301 + 49297) % 233280;
+    const delta = (rng / 233280 - 0.5) * 0.24;
+    // gentle mean reversion so it doesn't rail at extremes
+    v = Math.max(0.06, Math.min(0.94, v + delta + (0.5 - v) * 0.06));
+    // y=2 at top (v=1), y=22 at bottom (v=0) — always within viewBox
+    const y = 2 + (1 - v) * 20;
     s += (i === 0 ? "M" : "L") + (i * step).toFixed(1) + "," + y.toFixed(1) + " ";
   }
   return s;

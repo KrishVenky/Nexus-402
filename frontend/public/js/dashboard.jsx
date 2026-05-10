@@ -154,9 +154,9 @@ function AnalystHealth({ health }) {
         <KV k="p99 inference" v={<span className="mono" style={{ fontSize: 12, color: "var(--fg-0)" }}>{health.inference_p99_ms}ms</span>} />
       </div>
       <div style={{ padding: "0 18px 16px", display: "flex", flexDirection: "column", gap: 12 }}>
-        <Meter label="NPU temp" value={`${health.npu.temp_c.toFixed(1)} C`} pct={(health.npu.temp_c / 90) * 100} color={tempHot ? "var(--red)" : "var(--green)"} />
+        <Meter label="NPU temp" value={`${health.npu.temp_c.toFixed(1)} C`} pct={(health.npu.temp_c / 90) * 100} color={tempHot ? "var(--red)" : "var(--blue)"} />
         <Meter label="NPU util" value={`${utilPct.toFixed(0)}%`} pct={utilPct} color="var(--blue)"/>
-        <Meter label="VRAM" value={`${(health.npu.mem_mb/1024).toFixed(1)} / ${(health.npu.mem_total_mb/1024).toFixed(0)} GB`} pct={memPct} color="var(--purple)"/>
+        <Meter label="VRAM" value={`${(health.npu.mem_mb/1024).toFixed(1)} / ${(health.npu.mem_total_mb/1024).toFixed(0)} GB`} pct={memPct} color="var(--blue)"/>
       </div>
     </div>
   );

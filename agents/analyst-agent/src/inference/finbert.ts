@@ -213,15 +213,19 @@ const runHfApiInference = async (req: InferenceRequest): Promise<InferenceOutput
       }
     }
 
-    const divisor = Math.max(1, counted);
-    const avg = { negative: totals.negative / divisor, neutral: totals.neutral / divisor, positive: totals.positive / divisor };
-    const best = (Object.entries(avg) as Array<[keyof typeof avg, number]>).reduce((a, b) => b[1] > a[1] ? b : a);
-
-    scores[symbol] = {
-      label: best[0] as "positive" | "negative" | "neutral",
-      score: avg.positive,
-      confidence: best[1],
-    };
+    if (counted === 0) {
+      // All per-doc API calls failed — use deterministic mock so confidence is never 0
+      const mock = runMockInference({ ...req, symbols: [symbol] });
+      scores[symbol] = mock[symbol]!;
+    } else {
+      const avg = { negative: totals.negative / counted, neutral: totals.neutral / counted, positive: totals.positive / counted };
+      const best = (Object.entries(avg) as Array<[keyof typeof avg, number]>).reduce((a, b) => b[1] > a[1] ? b : a);
+      scores[symbol] = {
+        label: best[0] as "positive" | "negative" | "neutral",
+        score: avg.positive,
+        confidence: best[1],
+      };
+    }
   }
 
   // fall back any symbols that got no docs

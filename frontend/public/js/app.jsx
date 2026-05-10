@@ -348,7 +348,16 @@ function useNexusSim() {
         setLiveError("");
         if (liveHealth) setHealth(h => ({ ...h, ...liveHealth, inference_p50_ms: latestCallback?.result?.inferenceMs || h.inference_p50_ms }));
         setSignal(liveSignal || emptyLiveSignal());
-        setSentiment(latestCallback?.result?.scores || {});
+        if (latestCallback?.result?.scores && Object.keys(latestCallback.result.scores).length > 0) {
+          const raw = latestCallback.result.scores;
+          setSentiment(prev => {
+            const next = { ...prev };
+            for (const [sym, sc] of Object.entries(raw)) {
+              next[sym] = { label: sc.label, score: sc.score, confidence: sc.confidence, samples: (prev[sym]?.samples ?? 0) + 1 };
+            }
+            return next;
+          });
+        }
         setJobs(liveJobs);
       } catch (err) {
         if (cancelled) return;
@@ -375,25 +384,17 @@ function useNexusSim() {
   const triggerCycle = useCallbackA(async () => {
     if (cycleState.running) return;
 
+    // In live mode fire the real trigger in background — animation runs regardless
     if (dataSource === "live") {
-      try {
-        setCycleState({ running: true, activePhase: 0, completedThrough: -1, progress: 10, artifacts: { asset: "BTC/ETH/SOL" } });
-        await fetchJson(`${DD.NEXUS_CONFIG.quantEndpoint}/api/v1/strategy/trigger`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ symbols: ["BTC", "ETH", "SOL"], lookbackHours: 24 }),
-          timeoutMs: 5000,
-        });
-        setCycleState({ running: true, activePhase: 3, completedThrough: 1, progress: 45, artifacts: { asset: "BTC/ETH/SOL" } });
-        setTimeout(() => setCycleState({ running: false, activePhase: -1, completedThrough: -1, progress: 0, artifacts: null }), 7000);
-        return;
-      } catch (err) {
-        setLiveError(String(err.message || err));
-        setDataSource("demo");
-      }
+      fetchJson(`${DD.NEXUS_CONFIG.quantEndpoint}/api/v1/strategy/trigger`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ symbols: ["BTC", "ETH", "SOL"], lookbackHours: 24 }),
+        timeoutMs: 5000,
+      }).catch(err => setLiveError(String(err.message || err)));
     }
 
-    const asset = ["BTC", "ETH", "SOL"][Math.floor(Math.random()*3)];
+    const asset = dataSource === "live" ? "BTC/ETH/SOL" : ["BTC", "ETH", "SOL"][Math.floor(Math.random()*3)];
     const seed = Math.random();
     const initSig     = UU.genTxSig(seed + 0.1);
     const escrowSig   = initSig; // same tx initialises the escrow
