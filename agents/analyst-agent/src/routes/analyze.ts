@@ -22,6 +22,7 @@ type JobState = {
   invoiceId: string;
   jobId: string;
   status: "awaiting_payment" | "processing" | "completed" | "failed";
+  payload: X402PaymentRequest["payload"];
   result?: SentimentResult;
   proofHash?: string;
   startedAt?: number;
@@ -89,6 +90,7 @@ analyzeRouter.post("/analyze", async (req: Request, res: Response) => {
     invoiceId,
     jobId,
     status: "awaiting_payment",
+    payload: body.payload,
   });
 
   log.info("402 issued", { invoiceId, jobId, agentId, symbols: body.payload.symbols });
@@ -180,9 +182,9 @@ async function runInferenceAsync(
 ): Promise<void> {
   try {
     const result = await runInference({
-      symbols: ["BTC", "ETH", "SOL"], // In production: parse from original request
-      lookbackHours: 24,
-      source: "all",
+      symbols: job.payload.symbols,
+      lookbackHours: job.payload.lookbackHours,
+      source: job.payload.source,
     });
 
     const proofHash = sha256Hex(JSON.stringify(result));

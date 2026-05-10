@@ -23,6 +23,16 @@ async function main(): Promise<void> {
 
   const app = express();
   app.use(express.json({ limit: "1mb" }));
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.header("Access-Control-Allow-Origin", process.env["FRONTEND_ORIGIN"] ?? "*");
+    res.header("Access-Control-Allow-Headers", "Content-Type");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    if (_req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
 
   // Attach wallet context
   app.use((req: Request, _res: Response, next: NextFunction) => {

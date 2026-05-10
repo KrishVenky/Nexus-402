@@ -55,6 +55,16 @@ async function main(): Promise<void> {
   // ── Express server ────────────────────────────────────────────────────────
   const app = express();
   app.use(express.json({ limit: "1mb" }));
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.header("Access-Control-Allow-Origin", process.env["FRONTEND_ORIGIN"] ?? "*");
+    res.header("Access-Control-Allow-Headers", "Content-Type, X-Job-ID, X-Agent-ID");
+    res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    if (_req.method === "OPTIONS") {
+      res.sendStatus(204);
+      return;
+    }
+    next();
+  });
 
   // Attach agent context to all routes
   app.use((req: Request, _res: Response, next: NextFunction) => {

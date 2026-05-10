@@ -1,8 +1,20 @@
 /* global React */
 
 // ============================================================
-// Mock data + utilities
+// Demo data + runtime data-source utilities
 // ============================================================
+
+const NEXUS_CONFIG = {
+  quantEndpoint:
+    new URLSearchParams(window.location.search).get("quant") ||
+    window.localStorage?.getItem("NEXUS_QUANT_ENDPOINT") ||
+    "http://localhost:3001",
+  analystEndpoint:
+    new URLSearchParams(window.location.search).get("analyst") ||
+    window.localStorage?.getItem("NEXUS_ANALYST_ENDPOINT") ||
+    "http://localhost:3002",
+  cluster: new URLSearchParams(window.location.search).get("cluster") || "devnet",
+};
 
 const QUANT_PUBKEY = "QnT4f9aJ8XW2dKp7vRn3sLhB5cYxZmEoUgT1iVjP6kHa";
 const ANALYST_PUBKEY = "AnLy2pK9bD3wRsQ7uVxN8tFmCzG4jHeXoYdT5iLpA1Mn";
@@ -58,10 +70,10 @@ function genTxSig(seed = Math.random()) {
 }
 
 function explorerTx(sig) {
-  return `https://explorer.solana.com/tx/${sig}?cluster=devnet`;
+  return `https://explorer.solana.com/tx/${sig}?cluster=${NEXUS_CONFIG.cluster}`;
 }
 function explorerAddr(addr) {
-  return `https://explorer.solana.com/address/${addr}?cluster=devnet`;
+  return `https://explorer.solana.com/address/${addr}?cluster=${NEXUS_CONFIG.cluster}`;
 }
 
 // ============================================================
@@ -190,6 +202,7 @@ const ANALYST_STATS = {
 };
 
 window.NEXUS_DATA = {
+  NEXUS_CONFIG,
   QUANT_PUBKEY, ANALYST_PUBKEY,
   SEED_JOBS, SEED_SENTIMENT, SEED_SIGNAL, SEED_HEALTH,
   QUANT_STATS, ANALYST_STATS,

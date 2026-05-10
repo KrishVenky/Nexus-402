@@ -4,6 +4,95 @@ const { useState: useStateA, useEffect: useEffectA, useMemo: useMemoA, useRef: u
 const DD = window.NEXUS_DATA;
 const UU = window.NEXUS_UTIL;
 
+async function fetchJson(url, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs || 3500);
+  try {
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    return await res.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function confidenceToNumber(confidence) {
+  if (typeof confidence === "number") return confidence;
+  return confidence === "high" ? 0.88 : confidence === "medium" ? 0.68 : 0.48;
+}
+
+function mapLiveSignal(lastSignal) {
+  if (!lastSignal) return null;
+  const action = String(lastSignal.action || "hold").toUpperCase();
+  const positions = Object.values(lastSignal.suggestedPositions || {});
+  const positionDelta = positions.length
+    ? positions.reduce((sum, p) => sum + (p.direction === "long" ? p.weight : p.direction === "short" ? -p.weight : 0), 0) / positions.length
+    : 0;
+
+  return {
+    decision: ["BUY", "SELL", "HOLD"].includes(action) ? action : "HOLD",
+    confidence: confidenceToNumber(lastSignal.confidence),
+    risk: String(lastSignal.riskLevel || "moderate"),
+    rationale: lastSignal.reasoning || "Live strategy signal returned by the Quant Agent.",
+    generatedAt: lastSignal.timestamp ? Date.parse(lastSignal.timestamp) : Date.now(),
+    positionDelta,
+  };
+}
+
+function mapCallbacksToJobs(callbacks, fallbackWorker) {
+  return callbacks.map((callback) => {
+    const settlement = callback.settlement || {};
+    const symbols = Object.keys(callback.result?.scores || {});
+    return {
+      jobId: callback.jobId,
+      status: settlement.status === "settled" ? "Disbursed" : "Proof Submitted",
+      amountLamports: settlement.paymentAmountLamports || 500_000,
+      worker: fallbackWorker,
+      buyer: DD.QUANT_PUBKEY,
+      proofHash: callback.proofHash,
+      initSig: null,
+      proofSig: null,
+      disburseSig: settlement.disburseTxSignature || null,
+      createdAt: callback.completedAt || Date.now(),
+      completedAt: callback.completedAt || Date.now(),
+      inferenceMs: callback.result?.inferenceMs || null,
+      model: callback.result?.modelVersion || "finbert",
+      backend: callback.result?.inferenceBackend || "unknown",
+      asset: symbols.join("/") || "ALL",
+    };
+  });
+}
+
+function mapHealth(health) {
+  if (!health?.ok) return null;
+  return {
+    status: "online",
+    backend: health.inferenceBackend,
+    model: "finbert-1.0",
+    npu: {
+      temp_c: health.npuTempC ?? health.cpuTempC ?? 0,
+      util: health.npuAvailable ? 0.5 : 0.0,
+      mem_mb: Math.max(0, 8192 - (health.memoryFreeMb || 0)),
+      mem_total_mb: 8192,
+    },
+    uptime_s: health.uptimeSeconds || 0,
+    inference_p50_ms: 0,
+    inference_p99_ms: 0,
+    loaded: true,
+  };
+}
+
+function emptyLiveSignal() {
+  return {
+    decision: "HOLD",
+    confidence: 0,
+    risk: "waiting",
+    rationale: "No live strategy signal yet. Trigger an analysis cycle to generate one from the Quant Agent.",
+    generatedAt: Date.now(),
+    positionDelta: 0,
+  };
+}
+
 // ============================================================
 // Top navigation
 // ============================================================
@@ -97,6 +186,39 @@ function TopNav({ route, setRoute, healthOnline }) {
   );
 }
 
+function DataSourceBanner({ source, liveError }) {
+  const live = source === "live";
+  return (
+    <div style={{
+      marginBottom: 14,
+      padding: "10px 14px",
+      border: `1px solid ${live ? "rgba(74,222,128,0.28)" : "rgba(251,191,36,0.30)"}`,
+      borderRadius: 8,
+      background: live ? "rgba(74,222,128,0.07)" : "rgba(251,191,36,0.08)",
+      color: live ? "var(--green)" : "var(--yellow)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12,
+      flexWrap: "wrap",
+      fontSize: 12,
+    }}>
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+        <span className="pulse-dot" style={{ color: live ? "var(--green)" : "var(--yellow)" }}/>
+        <span className="mono" style={{ color: "inherit" }}>
+          {live ? "LIVE AGENT DATA" : "DEMO FALLBACK DATA"}
+        </span>
+        <span style={{ color: "var(--fg-2)" }}>
+          {live ? "Polling Quant and Analyst services." : "Start the local agents or set ?quant= and ?analyst= endpoints."}
+        </span>
+      </span>
+      {!live && liveError && (
+        <span className="mono" style={{ color: "var(--fg-3)", fontSize: 10.5 }}>{liveError}</span>
+      )}
+    </div>
+  );
+}
+
 function WalletBadge({ label, color, pubkey }) {
   return (
     <div style={{
@@ -176,6 +298,8 @@ function useNexusSim() {
   const [sentiment, setSentiment] = useStateA(DD.SEED_SENTIMENT);
   const [signal, setSignal] = useStateA(DD.SEED_SIGNAL);
   const [health, setHealth] = useStateA(DD.SEED_HEALTH);
+  const [dataSource, setDataSource] = useStateA("demo");
+  const [liveError, setLiveError] = useStateA("");
 
   const [cycleState, setCycleState] = useStateA({
     running: false,
@@ -203,6 +327,44 @@ function useNexusSim() {
     return () => clearInterval(t);
   }, []);
 
+  useEffectA(() => {
+    let cancelled = false;
+
+    const pollLive = async () => {
+      try {
+        const [quantHealth, analystHealth, strategy] = await Promise.all([
+          fetchJson(`${DD.NEXUS_CONFIG.quantEndpoint}/api/v1/health`),
+          fetchJson(`${DD.NEXUS_CONFIG.analystEndpoint}/api/v1/health`),
+          fetchJson(`${DD.NEXUS_CONFIG.quantEndpoint}/api/v1/strategy/status`),
+        ]);
+        if (cancelled) return;
+
+        const liveHealth = mapHealth(analystHealth);
+        const liveSignal = mapLiveSignal(strategy.lastSignal);
+        const liveJobs = mapCallbacksToJobs(strategy.callbacks || [], analystHealth.pubkey || DD.ANALYST_PUBKEY);
+        const latestCallback = (strategy.callbacks || [])[0];
+
+        setDataSource("live");
+        setLiveError("");
+        if (liveHealth) setHealth(h => ({ ...h, ...liveHealth, inference_p50_ms: latestCallback?.result?.inferenceMs || h.inference_p50_ms }));
+        setSignal(liveSignal || emptyLiveSignal());
+        setSentiment(latestCallback?.result?.scores || {});
+        setJobs(liveJobs);
+      } catch (err) {
+        if (cancelled) return;
+        setDataSource("demo");
+        setLiveError(String(err.message || err));
+      }
+    };
+
+    pollLive();
+    const t = setInterval(pollLive, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(t);
+    };
+  }, []);
+
   // Re-render every 30s so timeAgo updates
   useEffectA(() => {
     const t = setInterval(() => setJobs(js => [...js]), 30000);
@@ -210,8 +372,26 @@ function useNexusSim() {
   }, []);
 
   // Trigger cycle simulator
-  const triggerCycle = useCallbackA(() => {
+  const triggerCycle = useCallbackA(async () => {
     if (cycleState.running) return;
+
+    if (dataSource === "live") {
+      try {
+        setCycleState({ running: true, activePhase: 0, completedThrough: -1, progress: 10, artifacts: { asset: "BTC/ETH/SOL" } });
+        await fetchJson(`${DD.NEXUS_CONFIG.quantEndpoint}/api/v1/strategy/trigger`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ symbols: ["BTC", "ETH", "SOL"], lookbackHours: 24 }),
+          timeoutMs: 5000,
+        });
+        setCycleState({ running: true, activePhase: 3, completedThrough: 1, progress: 45, artifacts: { asset: "BTC/ETH/SOL" } });
+        setTimeout(() => setCycleState({ running: false, activePhase: -1, completedThrough: -1, progress: 0, artifacts: null }), 7000);
+        return;
+      } catch (err) {
+        setLiveError(String(err.message || err));
+        setDataSource("demo");
+      }
+    }
 
     const asset = ["BTC", "ETH", "SOL"][Math.floor(Math.random()*3)];
     const seed = Math.random();
@@ -298,9 +478,9 @@ function useNexusSim() {
       }, step.at);
       timers.push(t);
     });
-  }, [cycleState.running]);
+  }, [cycleState.running, dataSource]);
 
-  return { jobs, sentiment, signal, health, cycleState, triggerCycle };
+  return { jobs, sentiment, signal, health, cycleState, triggerCycle, dataSource, liveError };
 }
 
 function jitter(s) {
@@ -342,6 +522,7 @@ function App() {
     <div data-screen-label={screenLabel} style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative", zIndex: 1 }}>
       <TopNav route={route} setRoute={setRoute} healthOnline={sim.health.status === "online"}/>
       <main style={{ flex: 1, padding: "24px 22px 0", maxWidth: 1440, margin: "0 auto", width: "100%" }}>
+        <DataSourceBanner source={sim.dataSource} liveError={sim.liveError}/>
         {route === "/" && (
           <DashboardPage
             jobs={sim.jobs}

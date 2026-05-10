@@ -80,7 +80,7 @@ function JobCard({ job }) {
             borderRadius: 6, fontSize: 11.5, color: "var(--red)",
             fontFamily: "var(--font-mono)",
           }}>
-            ⚠ {job.cancelReason}
+            Warning: {job.cancelReason}
           </div>
         )}
       </div>

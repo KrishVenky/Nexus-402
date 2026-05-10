@@ -3,17 +3,40 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import { createLogger } from "../../../shared/logger";
 import { executeX402Job } from "../x402/client";
 import { generateTradingSignal } from "../llm/llm-client";
-import { receivedCallbacks } from "./callbacks";
+import { receivedCallbacks, settlementStore } from "./callbacks";
 import { X402PaymentRequest } from "../../../../shared-types";
 
 const log = createLogger("strategy");
 export const strategyRouter = Router();
 
 let lastSignal: Record<string, unknown> | null = null;
+type StrategyRun = {
+  jobId: string;
+  status: "started" | "completed" | "failed";
+  symbols: string[];
+  lookbackHours: number;
+  startedAt: number;
+  completedAt?: number;
+  error?: string;
+};
+
+const strategyRuns = new Map<string, StrategyRun>();
 
 // ── GET /api/v1/strategy/status ──────────────────────────────────────────────
 strategyRouter.get("/status", (_req: Request, res: Response) => {
-  res.json({ ok: true, lastSignal, pendingJobs: 0 });
+  const runs = Array.from(strategyRuns.values()).sort((a, b) => b.startedAt - a.startedAt);
+  const callbacks = Array.from(receivedCallbacks.values()).map((callback) => ({
+    ...callback,
+    settlement: settlementStore.get(callback.jobId) ?? null,
+  }));
+
+  res.json({
+    ok: true,
+    lastSignal,
+    pendingJobs: runs.filter((run) => run.status === "started").length,
+    runs,
+    callbacks,
+  });
 });
 
 // ── POST /api/v1/strategy/trigger — Kick off full A2A cycle ─────────────────
@@ -55,6 +78,15 @@ async function runStrategyAsync(
   };
 
   const jobResult = await executeX402Job(wallet, analystEndpoint, request, workerPubkey);
+  strategyRuns.set(jobResult.jobId, {
+    jobId: jobResult.jobId,
+    status: jobResult.success ? "completed" : "failed",
+    symbols,
+    lookbackHours,
+    startedAt: Date.now(),
+    completedAt: Date.now(),
+    error: jobResult.success ? undefined : jobResult.error,
+  });
 
   if (!jobResult.success) {
     log.error("x402 job failed", { reason: jobResult.reason, error: jobResult.error });

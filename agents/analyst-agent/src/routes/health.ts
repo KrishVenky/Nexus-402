@@ -19,6 +19,7 @@ export const healthRouter = (ctx: AgentContext): Router => {
 
     const health: HealthResponse = {
       ok: true,
+      pubkey: ctx.wallet.publicKey.toBase58(),
       npuAvailable: ctx.inferenceBackend === "hailo8_npu",
       cpuTempC,
       npuTempC: null,  // Hailo sysfs read from hardware_check
