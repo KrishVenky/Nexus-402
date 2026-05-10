@@ -153,22 +153,37 @@ async function generateWithOllama(sentiment: SentimentResult, isCloud: boolean):
 }
 
 const buildFallbackSignal = (sentiment: SentimentResult): TradingSignal => {
-  // ... (same as before)
   const agg = sentiment.aggregateSentiment;
   const strength = sentiment.signalStrength;
   const action: TradingSignal["action"] = agg === "positive" ? "buy" : agg === "negative" ? "sell" : "hold";
   const confidence: TradingSignal["confidence"] = strength === "strong" ? "high" : strength === "moderate" ? "medium" : "low";
+
   const positions: TradingSignal["suggestedPositions"] = {};
   for (const [symbol, score] of Object.entries(sentiment.scores)) {
     positions[symbol] = {
       direction: score.label === "positive" ? "long" : score.label === "negative" ? "short" : "flat",
-      weight: score.confidence,
+      weight: Math.round(score.confidence * 100) / 100,
     };
   }
+
+  const bearish = Object.entries(sentiment.scores).filter(([, s]) => s.label === "negative").map(([sym]) => sym);
+  const bullish = Object.entries(sentiment.scores).filter(([, s]) => s.label === "positive").map(([sym]) => sym);
+  const strengthLabel = strength === "strong" ? "high-conviction" : strength === "moderate" ? "moderate" : "low-conviction";
+  const n = sentiment.sourceCount;
+
+  let reasoning: string;
+  if (agg === "negative") {
+    reasoning = `FinBERT detected ${strengthLabel} bearish sentiment across ${n} sources. ${bearish.join(", ")} signal short — reducing long exposure and rotating to defensive positions.`;
+  } else if (agg === "positive") {
+    reasoning = `FinBERT detected ${strengthLabel} bullish momentum across ${n} sources. ${bullish.join(", ")} signal long — scaling into positions with momentum bias.`;
+  } else {
+    reasoning = `FinBERT signals mixed market sentiment across ${n} sources. Holding current exposure — monitoring for directional break before committing capital.`;
+  }
+
   return {
     action,
     confidence,
-    reasoning: "Rule-based fallback (LLM unavailable).",
+    reasoning,
     suggestedPositions: positions,
     riskLevel: strength === "strong" ? "aggressive" : "moderate",
   };

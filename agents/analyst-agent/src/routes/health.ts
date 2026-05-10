@@ -17,13 +17,17 @@ export const healthRouter = (ctx: AgentContext): Router => {
 
     const freeMb = Math.round(os.freemem() / 1024 / 1024);
 
+    // Use INFERENCE_BACKEND env var as the authoritative backend label —
+    // hardware check returns "mock" on non-Linux even when hf_api is configured
+    const inferenceBackend = (process.env["INFERENCE_BACKEND"] ?? ctx.inferenceBackend) as HealthResponse["inferenceBackend"];
+
     const health: HealthResponse = {
       ok: true,
       pubkey: ctx.wallet.publicKey.toBase58(),
       npuAvailable: ctx.inferenceBackend === "hailo8_npu",
       cpuTempC,
-      npuTempC: null,  // Hailo sysfs read from hardware_check
-      inferenceBackend: ctx.inferenceBackend,
+      npuTempC: null,
+      inferenceBackend,
       memoryFreeMb: freeMb,
       uptimeSeconds: Math.round((Date.now() - ctx.startedAt) / 1000),
     };

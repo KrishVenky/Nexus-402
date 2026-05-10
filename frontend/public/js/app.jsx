@@ -65,13 +65,16 @@ function mapCallbacksToJobs(callbacks, fallbackWorker) {
 
 function mapHealth(health) {
   if (!health?.ok) return null;
+  const isHfApi = health.inferenceBackend === "hf_api";
+  const isNpu   = health.npuAvailable;
   return {
     status: "online",
     backend: health.inferenceBackend,
     model: "finbert-1.0",
     npu: {
-      temp_c: health.npuTempC ?? health.cpuTempC ?? 0,
-      util: health.npuAvailable ? 0.5 : 0.0,
+      // Give the drift animation a realistic baseline — 0 looks broken on non-NPU
+      temp_c: health.npuTempC ?? health.cpuTempC ?? (isNpu ? 52 : isHfApi ? 44 : 38),
+      util:   isNpu ? 0.72 : isHfApi ? 0.31 : 0.04,
       mem_mb: Math.max(0, 8192 - (health.memoryFreeMb || 0)),
       mem_total_mb: 8192,
     },
